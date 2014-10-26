@@ -39,10 +39,10 @@ class View:
             parent_type=parent.tag
         type=e.tag
         id=None
-        margin_left=0
-        margin_right=0
-        margin_top=0
-        margin_bottom=0
+        margin_left=None
+        margin_right=None
+        margin_top=None
+        margin_bottom=None
         layout_width="ViewGroup.LayoutParams.WRAP_CONTENT"
         layout_height="ViewGroup.LayoutParams.WRAP_CONTENT"
         for k,v in e.items():
@@ -70,9 +70,13 @@ class View:
         params=var + "Params"
         margins=var + "Margins"
         print(type + " "+str(id) + " = new " + type + "(this);")
-        if margin_left>0 or margin_right>0 or margin_top>0 or margin_bottom>0:
+        if margin_left or margin_right or margin_top or margin_bottom:
+            margin_left=margin_left or "0"
+            margin_top=margin_top or "0"
+            margin_right=margin_right or "0"
+            margin_bottom=margin_bottom or "0"
             print("MarginLayoutParams "+margins+" = new MarginLayoutParams" +layout_width+","+layout_height+");")
-            print(margins + ".setMargins(" + str(margin_left)+ ","+str(margin_top)+","+str(margin_right)+","+str(margin_bottom)+");")
+            print(margins + ".setMargins(" + margin_left+ ","+margin_top+","+margin_right+","+margin_bottom+");")
             print(parent_type + ".LayoutParams "+params + " =new " + parent_type + ".LayoutParams("+margins+");")
         else:
             print(parent_type + ".LayoutParams "+params + " =new " + parent_type + ".LayoutParams("+layout_width+","+layout_height+");")
@@ -87,12 +91,17 @@ class View:
         value=v.lower()
         if value=="fill_parent" or value=="match_parent":
             return "ViewGroup.LayoutParams.MATCH_PARENT"
-        else:
+        elif value=="wrap_parent":
             return "ViewGroup.LayoutParams.WRAP_CONTENT"
+        return self.convert_dp(value);
 
     def convert_dp(self,v):
-        i=v.find("dp")
-        return int(v[:i])
+        if v.endswith("dp"):
+            return str(int(v[:-2]))
+        i=v.find("dimen/")
+        if i>=0:
+            return "getResources().getDimension(R.dimen."+ v[i+6:] +")"
+        return "0"
 
     def convert_id(self,v):
         i=v.find("/")

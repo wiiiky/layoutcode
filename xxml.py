@@ -49,6 +49,7 @@ class View:
         layout_height="ViewGroup.LayoutParams.WRAP_CONTENT"
         fillViewport=None
         orientation=None
+        src=None
         for k,v in e.items():
             key=self.handle_key(k)
             value=self.handle_value(v)
@@ -74,6 +75,8 @@ class View:
                 fillViewport=value
             elif key=="orientation":
                 orientation=self.convert_orientation(value)
+            elif key=="src":
+                src=self.convert_src(value)
             else:
                 print("unkonwn : " +key + "|" + value)
         
@@ -90,7 +93,7 @@ class View:
             margin_top=margin_top or "0"
             margin_right=margin_right or "0"
             margin_bottom=margin_bottom or "0"
-            code.append("MarginLayoutParams "+margins+" = new MarginLayoutParams" +layout_width+","+layout_height+");")
+            code.append("ViewGroup.MarginLayoutParams "+margins+" = new ViewGroup.MarginLayoutParams(" +layout_width+","+layout_height+");")
             code.append(margins + ".setMargins(" + margin_left+ ","+margin_top+","+margin_right+","+margin_bottom+");")
             code.append(parent_type + ".LayoutParams "+params + " = new " + parent_type + ".LayoutParams("+margins+");")
         else:
@@ -110,10 +113,11 @@ class View:
         if orientation is not None:
             code.append(var + ".setOrientation(" + orientation +");")
 
+        if src is not None:
+            code.append(var + ".setImageDrawable(" + src + ");")
+
         if parent_id:
             code.append(parent_id + ".addView(" + id +");")
-
-        code.append("\n")
 
         self.id=id
         self.code=code
@@ -122,9 +126,15 @@ class View:
         value=v.lower()
         if value=="fill_parent" or value=="match_parent":
             return "ViewGroup.LayoutParams.MATCH_PARENT"
-        elif value=="wrap_parent":
+        elif value=="wrap_content":
             return "ViewGroup.LayoutParams.WRAP_CONTENT"
         return self.convert_dp(value);
+
+    def convert_src(self,v):
+        i=v.find("drawable/")
+        if i>=0:
+            return "getResources().getDrawable(R.drawable."+ v[i+9:] +")"
+        return "unknown";
 
     def convert_dp(self,v):
         if v.endswith("dp"):
@@ -161,26 +171,37 @@ class View:
 class Generator:
     """docstring for Generator"""
     def __init__(self, data):
-        tree=ET.ElementTree(file=data.input)
-        self.root=tree.getroot()
 
+        try:
+            tree=ET.ElementTree(file=data.input)
+            self.root=tree.getroot()
+        except Exception as e:
+            print(e)
+            return
+
+        self.views=[]
         self.for_all(self.root);
+
+        try:
+            file=open(data.output,"w")
+            for view in self.views:
+                for s in view.code:
+                    file.write(s+"\n")
+
+                file.write("\n")
+
+            file.write("return " + self.views[0].id + ";\n")
+            file.close()
+        except Exception as e:
+            print(e)
 
     def for_all(self,root,p=None,pid=None):
         """处理所有子节点"""
 
         view=View(root,p,pid)
-        for s in view.code:
-            print(s)
+        self.views.append(view)
 
         children=root.getchildren()
         if children is not None:
             for i in children:
                 self.for_all(i,root,view.id)
-
-        if p is None:   # 返回根节点
-            print("return " + view.id +";")
-
-    def handle_linearlayout(self,e,p):
-        """处理LinearLayout"""
-        View(e,p)

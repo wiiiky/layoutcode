@@ -1,0 +1,12 @@
+xmlcode
+===========
+
+##Introduce
+解析Android的UI布局文件（.xml）来生成相应的JAVA代码。
+
+简单地说就是将XML定义的布局转化为代码布局。
+
+##Node & Contact Info
+Wiky L(wiiiky@yeah.net)
+
+有任何问题都欢迎和我联系

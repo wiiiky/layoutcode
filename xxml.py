@@ -31,31 +31,61 @@ def get_tmp_name():
     tmp_index=tmp_index+1
     return "tmp" + str(tmp_index)
 
+def list_contains(list,v):
+    for i in list:
+        if i==v:
+            return True
+    return False
+
 class View:
     """一个节点的基本属性处理"""
     def __init__(self,e, parent=None,parent_id=None):
+        self_type=e.tag
+
         parent_type="ViewGroup"
         if parent is not None:
             parent_type=parent.tag
-        type=e.tag
-        id=None
+
         margin_left=None
         margin_right=None
         margin_top=None
         margin_bottom=None
-        text=None
         layout_weight=None
         layout_width="ViewGroup.LayoutParams.WRAP_CONTENT"
         layout_height="ViewGroup.LayoutParams.WRAP_CONTENT"
-        fillViewport=None
-        orientation=None
-        src=None
+
+        paddingLeft=None
+        paddingRight=None
+        paddingTop=None
+        paddingBottom=None
+        paddingStart=None
+        paddingEnd=None
+        
+        id=None
+        #先找到id
         for k,v in e.items():
             key=self.handle_key(k)
             value=self.handle_value(v)
             if key=="id":
                 id=self.convert_id(value)
-            elif key=="layout_width":
+                break
+
+        if id is None:
+            id=get_tmp_name()
+
+        ignored=["id","context"]    # 忽略的属性
+
+        var=str(id)
+        params=var + "Params"
+        margins=var + "Margins"
+
+        code=[]
+        code.append(self_type + " "+str(id) + " = new " + self_type + "(this);")
+
+        for k,v in e.items():
+            key=self.handle_key(k)
+            value=self.handle_value(v)
+            if key=="layout_width":
                 layout_width=self.convert_layout(value)
             elif key=="layout_height":
                 layout_height=self.convert_layout(value)
@@ -69,25 +99,63 @@ class View:
                 margin_top=self.convert_dp(value)
             elif key=="layout_marginbottom":
                 margin_bottom=self.convert_dp(value)
-            elif key=="text":
-                text=value;
-            elif key=="fillviewport":
-                fillViewport=value
+            elif key=="paddingleft":
+                paddingLeft=self.convert_dp(value)
+            elif key=="paddingright":
+                paddingRight=self.convert_dp(value)
+            elif key=="paddingtop":
+                paddingTop=self.convert_dp(value)
+            elif key=="paddingbottom":
+                paddingBottom=self.convert_dp(value)
+            elif key=="paddingstart":
+                paddingStart=self.convert_dp(value)
+            elif key=="paddingend":
+                paddingEnd=self.convert_dp(value)
+            elif key=="padding":
+                padding=self.convert_dp(value)
+                paddingLeft=padding
+                paddingRight=padding
+                paddingTop=padding
+                paddingBottom=padding
+            elif key=="gravity":
+                gravity=self.convert_gravity(value)
+                code.append(var + ".setGravity(" + gravity + ");" )
+            elif key=="text":    #TextView Button
+                if len(value)>0:
+                    text=self.convert_text(value)
+                    code.append(var + ".setText(" + text + ");")
+            elif key=="textcolor":
+                color=self.convert_color(value)
+                code.append(var + ".setTextColor(" + color +");")
+            elif key=="textcolorlink":
+                color=self.convert_color(value)
+                code.append(var + ".setLinkTextColor(" + color + ");")
+            elif key=="singleline":
+                code.append(var + ".setSingleLine(" + value + ");")
+            elif key=="fillviewport": #ScrollView
+                code.append(var + ".setFillViewport(" + value + ");")
             elif key=="orientation":
                 orientation=self.convert_orientation(value)
-            elif key=="src":
+                code.append(var + ".setOrientation(" + orientation +");")
+            elif key=="src":  #ImageView
                 src=self.convert_src(value)
-            else:
+                code.append(var + ".setImageDrawable(" + src + ");")
+            elif not list_contains(ignored,key):
                 print("unkonwn : " +key + "|" + value)
-        
-        if id is None:
-            id=get_tmp_name()
 
-        var=str(id)
-        params=var + "Params"
-        margins=var + "Margins"
-        code=[]
-        code.append(type + " "+str(id) + " = new " + type + "(this);")
+        if paddingLeft or paddingRight or paddingTop or paddingBottom:
+            left=paddingLeft or "0"
+            right=paddingRight or "0"
+            top=paddingTop or "0"
+            bottom=paddingBottom or "0"
+            code.append(var + ".setPadding((int)" + left +",(int)" + top + ",(int)" + right + ",(int)" + bottom + ");")
+        elif paddingStart or paddingEnd or paddingTop or paddingBottom:
+            start=paddingStart or "0"
+            end=paddingEnd or "0"
+            top=paddingTop or "0"
+            bottom=paddingBottom or "0"
+            code.append(var + ".setPaddingRelative((int)" + start + ",(int)" + top + ",(int)" + end + ",(int)" + bottom + ");")
+
         if margin_left or margin_right or margin_top or margin_bottom:
             margin_left=margin_left or "0"
             margin_top=margin_top or "0"
@@ -97,24 +165,13 @@ class View:
             code.append(margins + ".setMargins(" + margin_left+ ","+margin_top+","+margin_right+","+margin_bottom+");")
             code.append(parent_type + ".LayoutParams "+params + " = new " + parent_type + ".LayoutParams("+margins+");")
         else:
-            code.append(parent_type + ".LayoutParams "+params + " = new " + parent_type + ".LayoutParams("+layout_width+","+layout_height+");")
+            code.append(parent_type + ".LayoutParams "+params + 
+                    " = new " + parent_type + ".LayoutParams("+layout_width+","+layout_height+");")
 
         if layout_weight is not None:
             code.append(params + ".weight=" + layout_weight + ";")
 
         code.append(var + ".setLayoutParams(" + params + ");")
-
-        if text is not None and len(text)>0:
-            code.append(var + ".setText(\"" + text + "\");")
-
-        if fillViewport is not None:
-            code.append(var + ".setFillViewport(" + fillViewport + ");")
-
-        if orientation is not None:
-            code.append(var + ".setOrientation(" + orientation +");")
-
-        if src is not None:
-            code.append(var + ".setImageDrawable(" + src + ");")
 
         if parent_id:
             code.append(parent_id + ".addView(" + id +");")
@@ -130,11 +187,30 @@ class View:
             return "ViewGroup.LayoutParams.WRAP_CONTENT"
         return self.convert_dp(value);
 
+    def convert_gravity(self,v):
+        if v=="center_horizontal":
+            return "Gravity.CENTER_HORIZONTAL"
+        elif v=="center_vertical":
+            return "Gravity.CENTER_VERTICAL"
+        return "Gravity.CENTER"
+
     def convert_src(self,v):
         i=v.find("drawable/")
         if i>=0:
             return "getResources().getDrawable(R.drawable."+ v[i+9:] +")"
         return "unknown";
+
+    def convert_text(self,v):
+        i=v.find("string/")
+        if i>=0:
+            return "getResources().getString(R.string."+ v[i+7:]  +")"
+        return "\"" + v + "\""
+
+    def convert_color(self,v):
+        i=v.find("color/")
+        if i>=0:
+            return "getResources().getColor(R.color."+ v[i+6:] + ")"
+        return "unknown"
 
     def convert_dp(self,v):
         if v.endswith("dp"):
@@ -165,8 +241,8 @@ class View:
 
     def handle_value(self,value):
         return value
-        
-    
+
+
 
 class Generator:
     """docstring for Generator"""
@@ -179,21 +255,33 @@ class Generator:
             print(e)
             return
 
+        # 将所有节点按处理顺序保存在self.views数组中
         self.views=[]
         self.for_all(self.root);
 
-        try:
+
+        all=""
+        for view in self.views:
+            for s in view.code:
+                all=all + s + "\n"
+            all=all+"\n"
+            
+        #后期处理
+        i=all.find("getResources()")
+        if i>=0:    # 如果用到getResources()那么，将其提取出来，避免重复调用
+            res="res"
+            all=all.replace("getResources()",res)
+            all="Resources " +res + " = getResources();\n\n" + all
+
+        try:    # 写入文件
             file=open(data.output,"w")
-            for view in self.views:
-                for s in view.code:
-                    file.write(s+"\n")
-
-                file.write("\n")
-
+            file.write(all)
             file.write("return " + self.views[0].id + ";\n")
             file.close()
         except Exception as e:
             print(e)
+            return
+        print("Success!")
 
     def for_all(self,root,p=None,pid=None):
         """处理所有子节点"""

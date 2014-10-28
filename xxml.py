@@ -140,6 +140,14 @@ class View:
             elif key=="src":  #ImageView
                 src=self.convert_src(value)
                 code.append(var + ".setImageDrawable(" + src + ");")
+            elif key=="background":
+                bg=self.convert_background(value)
+                code.append(var + ".setBackgroundResource(" + bg + ");")
+            elif key=="style":
+                style=self.convert_style(value)
+                code.append(self.get_style_code(self_type,var,style))
+            elif key=="completionthreshold":
+                code.append(var + ".setThreshold(" + value + ");")
             elif not list_contains(ignored,key):
                 print("unkonwn : " +key + "|" + value)
 
@@ -200,6 +208,21 @@ class View:
             return "getResources().getDrawable(R.drawable."+ v[i+9:] +")"
         return "unknown";
 
+    def convert_background(self,v):
+        i=v.find("drawable/")
+        if i>=0:
+            return "R.drawable." + v[i+9:]
+        i=v.find("color/")
+        if i>=0:
+            return "R.color." + v[i+6:]
+        return "unknown"
+
+    def convert_style(self,v):
+        i=v.find("style/")
+        if i>=0:
+            return "R.style." + v[i+6:]
+        return "unknown"
+
     def convert_text(self,v):
         i=v.find("string/")
         if i>=0:
@@ -241,7 +264,12 @@ class View:
 
     def handle_value(self,value):
         return value
+    
+    def get_style_code(self,self_type,var,style):
+        if self_type=="TextView" or self_type=="CheckBox" or self_type=="EditText" or self_type=="AutoCompleteTextView":
+            return var + ".setTextAppearance(this," + style + ");"
 
+        return "[style?]"
 
 
 class Generator:

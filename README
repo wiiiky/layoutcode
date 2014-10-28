@@ -6,6 +6,19 @@ xmlcode
 
 简单地说就是将XML定义的布局转化为代码布局。
 
+##Usage
+xmlcode input [ouput]
+
+        input是要解析的XML文件
+        output是JAVA代码的输出文件，如果没有指定，则根据input文件名在当前目录生成.java的文件
+        
+比如
+
+        xmlcode test/login.xml      #将在当前目录生成login.java文件
+
+##XXX
+目前还不是很完善，很多属性还不支持。我会逐步添加。
+
 ##Node & Contact Info
 Wiky L(wiiiky@yeah.net)
 

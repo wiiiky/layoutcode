@@ -47,6 +47,8 @@ class Parser:
                 file=file+".java"
             self.output="./"+file
 
+        print("INPUT:\t{0}\nOUTPUT:\t{1}".format(self.input,self.output))
+
 
 
 def show_help():

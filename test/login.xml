@@ -64,9 +64,9 @@
             <EditText
                 android:id="@+id/et_password"
                 style="@style/LoginEditText"
-                android:imeOptions="actionDone"
+                android:imeOptions="actionNext"
                 android:inputType="textPassword"
-                android:typeface="monospace" />
+                android:typeface="normal" />
 
             <CheckBox
                 android:id="@+id/cb_show_password"

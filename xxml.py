@@ -51,8 +51,8 @@ class View:
         margin_top=None
         margin_bottom=None
         layout_weight=None
-        layout_width="ViewGroup.LayoutParams.WRAP_CONTENT"
-        layout_height="ViewGroup.LayoutParams.WRAP_CONTENT"
+        layout_width=None
+        layout_height=None
 
         paddingLeft=None
         paddingRight=None
@@ -62,25 +62,33 @@ class View:
         paddingEnd=None
         
         id=None
+        var=None
         #先找到id
         for k,v in e.items():
             key=self.handle_key(k)
             value=self.handle_value(v)
             if key=="id":
-                id=self.convert_id(value)
+                id=self.get_id(value)
                 break
 
         if id is None:
-            id=get_tmp_name()
+            var=get_tmp_name()
+        else:
+            var=id
 
         ignored=["id","context"]    # 忽略的属性
 
-        var=str(id)
         params=var + "Params"
         margins=var + "Margins"
 
         code=[]
-        code.append(self_type + " "+str(id) + " = new " + self_type + "(this);")
+        code.append(self_type + " "+ var + " = new " + self_type + "(this);")
+
+        if id:
+            code.append(var + ".setId(R.id." + id + ");")
+
+        if parent_id:
+            code.append(parent_id + ".addView(" + var +");")
 
         for k,v in e.items():
             key=self.handle_key(k)
@@ -148,6 +156,18 @@ class View:
                 code.append(self.get_style_code(self_type,var,style))
             elif key=="completionthreshold":
                 code.append(var + ".setThreshold(" + value + ");")
+            elif key=="inputtype":
+                inputtype=self.convert_inputtype(value)
+                code.append(var + ".setInputType(" + inputtype + ");")
+            elif key=="nextfocusdown":
+                nextid=self.convert_id(value)
+                code.append(var + ".setNextFocusDownId(" + nextid + ");")
+            elif key=="imeoptions":
+                opt=self.convert_imeoption(value)
+                code.append(var + ".setImeOptions(" + opt + ");")
+            elif key=="typeface":
+                face=self.convert_typeface(value)
+                code.append(var + ".setTypeface(" + face + ");")
             elif not list_contains(ignored,key):
                 print("unkonwn : " +key + "|" + value)
 
@@ -164,28 +184,42 @@ class View:
             bottom=paddingBottom or "0"
             code.append(var + ".setPaddingRelative((int)" + start + ",(int)" + top + ",(int)" + end + ",(int)" + bottom + ");")
 
+        if layout_width or layout_height or layout_weight:
+            if parent_id:
+                if layout_width:
+                    code.append(var + ".getLayoutParams().width=" + layout_width + ";")
+                if layout_height:
+                    code.append(var + ".getLayoutParams().height=" + layout_height + ";")
+                if layout_weight:
+                    code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).weight=" + layout_weight + ";")
+            else:
+                width = layout_width or "0"
+                height = layout_height or "0"
+                code.append("ViewGroup.LayoutParams "+params+"=new ViewGroup.LayoutParams("+width+", "+height+");")
+                code.append(var+".setLayoutParams("+params+");")
+                
         if margin_left or margin_right or margin_top or margin_bottom:
             margin_left=margin_left or "0"
             margin_top=margin_top or "0"
             margin_right=margin_right or "0"
             margin_bottom=margin_bottom or "0"
-            code.append("ViewGroup.MarginLayoutParams "+margins+" = new ViewGroup.MarginLayoutParams(" +layout_width+","+layout_height+");")
-            code.append(margins + ".setMargins(" + margin_left+ ","+margin_top+","+margin_right+","+margin_bottom+");")
-            code.append(parent_type + ".LayoutParams "+params + " = new " + parent_type + ".LayoutParams("+margins+");")
-        else:
-            code.append(parent_type + ".LayoutParams "+params + 
-                    " = new " + parent_type + ".LayoutParams("+layout_width+","+layout_height+");")
+            code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).setMargins("+margin_left+","+margin_top+","+margin_right+","+margin_bottom+");")
 
-        if layout_weight is not None:
-            code.append(params + ".weight=" + layout_weight + ";")
-
-        code.append(var + ".setLayoutParams(" + params + ");")
-
-        if parent_id:
-            code.append(parent_id + ".addView(" + id +");")
-
-        self.id=id
+        self.id=var
         self.code=code
+
+    def get_id(self,v):
+        i=v.find("/")
+        if i>0:
+            return v[i+1:]
+        return v
+
+    def convert_id(self,v):
+        i=v.find("/")
+        if i>0:
+            return "R.id." + v[i+1:]
+        print("unknown value:",v)
+        return "unknown"
 
     def convert_layout(self,v):
         value=v.lower()
@@ -206,6 +240,7 @@ class View:
         i=v.find("drawable/")
         if i>=0:
             return "getResources().getDrawable(R.drawable."+ v[i+9:] +")"
+        print("unknown value :",v)
         return "unknown";
 
     def convert_background(self,v):
@@ -215,12 +250,14 @@ class View:
         i=v.find("color/")
         if i>=0:
             return "R.color." + v[i+6:]
+        print("unknown value :",v)
         return "unknown"
 
     def convert_style(self,v):
         i=v.find("style/")
         if i>=0:
             return "R.style." + v[i+6:]
+        print("unknown value :",v)
         return "unknown"
 
     def convert_text(self,v):
@@ -233,7 +270,28 @@ class View:
         i=v.find("color/")
         if i>=0:
             return "getResources().getColor(R.color."+ v[i+6:] + ")"
+        print("unknown value :",v)
         return "unknown"
+
+    def convert_inputtype(self,v):
+        if v=="textPassword":
+            return "InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD"
+        elif v=="textVisiblePassword":
+            return "InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD"
+        elif v=="textEmailAddress":
+            return "InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS"
+        print("unknown value :",v)
+        return "unknown"
+
+    def convert_typeface(self,v):
+        if v=="monospace":
+            return "Typeface.MONOSPACE"
+        elif v=="sans":
+            return "Typeface.SANS_SERIF"
+        elif v=="serif":
+            return "Typeface.SERIF"
+
+        return "Typeface.create(\"" + v + "\",Typeface.NORMAL)"
 
     def convert_dp(self,v):
         if v.endswith("dp"):
@@ -243,11 +301,15 @@ class View:
             return "getResources().getDimension(R.dimen."+ v[i+6:] +")"
         return "0"
 
-    def convert_id(self,v):
-        i=v.find("/")
-        if i>0:
-            return v[i+1:]
-        return v
+    def convert_imeoption(self,v):
+        if v=="actionNext":
+            return "IME_ACTION_NEXT"
+        elif v=="actionDone":
+            return "IME_ACTION_DONE"
+        elif v=="actionGo":
+            return "IME_ACTION_GO"
+        print("unknown value:",v)
+        return "unknown"
 
     def convert_orientation(self, v):
         lower=v.lower()
@@ -268,7 +330,7 @@ class View:
     def get_style_code(self,self_type,var,style):
         if self_type=="TextView" or self_type=="CheckBox" or self_type=="EditText" or self_type=="AutoCompleteTextView":
             return var + ".setTextAppearance(this," + style + ");"
-
+        print("unknown value :",v)
         return "[style?]"
 
 

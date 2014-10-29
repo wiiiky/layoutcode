@@ -46,39 +46,33 @@ class View:
         if parent is not None:
             parent_type=parent.tag
 
-        margin_left=None
-        margin_right=None
-        margin_top=None
-        margin_bottom=None
         layout_weight=None
         layout_width=None
         layout_height=None
-
-        paddingLeft=None
-        paddingRight=None
-        paddingTop=None
-        paddingBottom=None
-        paddingStart=None
-        paddingEnd=None
         
         id=None
         var=None
-        #先找到id
+        #第一次遍历，先提取出id，以及layout_width、layout_height、layout_weight
         for k,v in e.items():
             key=self.handle_key(k)
             value=self.handle_value(v)
             if key=="id":
                 id=self.get_id(value)
-                break
+            elif key=="layout_width":
+                layout_width=self.convert_layout(value)
+            elif key=="layout_height":
+                layout_height=self.convert_layout(value)
+            elif key=="layout_weight":
+                layout_weight=value
 
         if id is None:
             var=get_tmp_name()
         else:
             var=id
 
-        ignored=["id","context"]    # 忽略的属性
+        ignored=["id","context","layout_width","layout_height","layout_weight"]    # 忽略的属性
 
-        params=var + "Params"
+        params=None
         margins=var + "Margins"
 
         code=[]
@@ -90,16 +84,45 @@ class View:
         if parent_id:
             code.append(parent_id + ".addView(" + var +");")
 
+
+        if layout_width or layout_height or layout_weight:
+            params=var + "Params"
+            if parent_id:
+                code.append(parent_type + ".LayoutParams " + params + " = (" + parent_type + ".LayoutParams)" + var + ".getLayoutParams();")
+                if layout_width:
+                    code.append(params + ".width=" + layout_width + ";")
+                if layout_height:
+                    code.append(params + ".height=" + layout_height + ";")
+                if layout_weight:
+                    code.append(params + ".weight=" + layout_weight + ";")
+            else:
+                width = layout_width or "0"
+                height = layout_height or "0"
+                code.append("ViewGroup.LayoutParams "+params+"=new ViewGroup.LayoutParams("+width+", "+height+");")
+                code.append(var+".setLayoutParams("+params+");")
+        else:
+            print("layout_weight and layout_height are neither specified")
+            params=var + "Params"
+            code.append(parent_type + ".LayoutParams " + params + " = (" + parent_type + ".LayoutParams)" + var + ".getLayoutParams();")
+
+
+        #第二次遍历,margin和padding需要统一处理
+        margin_left=None
+        margin_right=None
+        margin_top=None
+        margin_bottom=None
+        
+        paddingLeft=None
+        paddingRight=None
+        paddingTop=None
+        paddingBottom=None
+        paddingStart=None
+        paddingEnd=None
+
         for k,v in e.items():
             key=self.handle_key(k)
             value=self.handle_value(v)
-            if key=="layout_width":
-                layout_width=self.convert_layout(value)
-            elif key=="layout_height":
-                layout_height=self.convert_layout(value)
-            elif key=="layout_weight":
-                layout_weight=value
-            elif key=="layout_marginleft":
+            if key=="layout_marginleft":
                 margin_left=self.convert_dp(value)
             elif key=="layout_marginright":
                 margin_right=self.convert_dp(value)
@@ -125,9 +148,22 @@ class View:
                 paddingRight=padding
                 paddingTop=padding
                 paddingBottom=padding
+            elif key=="layout_below":
+                belowid=self.convert_id(value)
+                code.append(params + ".addRule(" + parent_type + ".BELOW,"+belowid+");")
             elif key=="gravity":
                 gravity=self.convert_gravity(value)
                 code.append(var + ".setGravity(" + gravity + ");" )
+            elif key=="layout_alignparentleft":
+                if value=="true":
+                    code.append(params + ".addRule(" + parent_type + ".ALIGN_PARENT_LEFT);")
+                else:
+                    code.append(params + ".removeRule(" + parent_type + ".ALIGN_PARENT_LEFT);")
+            elif key=="layout_alignparentright":
+                if value=="true":
+                    code.append(params + ".addRule(" + parent_type + ".ALIGN_PARENT_RIGHT);")
+                else:
+                    code.append(params + ".removeRule(" + parent_type + ".ALIGN_PARENT_RIGHT);")
             elif key=="text":    #TextView Button
                 if len(value)>0:
                     text=self.convert_text(value)
@@ -169,6 +205,8 @@ class View:
             elif key=="typeface":
                 face=self.convert_typeface(value)
                 code.append(var + ".setTypeface(" + face + ");")
+            elif key=="ems":
+                code.append(var + ".setEms(" + value + ");")
             elif not list_contains(ignored,key):
                 print("unkonwn : " +key + "|" + value)
 
@@ -200,20 +238,6 @@ class View:
             if paddingBottom:
                 bottom="(int)("+paddingBottom+"*getResources().getDisplayMetrics().density)"
             code.append(var + ".setPaddingRelative("+start+","+top+","+end+","+bottom+");")
-
-        if layout_width or layout_height or layout_weight:
-            if parent_id:
-                if layout_width:
-                    code.append(var + ".getLayoutParams().width=" + layout_width + ";")
-                if layout_height:
-                    code.append(var + ".getLayoutParams().height=" + layout_height + ";")
-                if layout_weight:
-                    code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).weight=" + layout_weight + ";")
-            else:
-                width = layout_width or "0"
-                height = layout_height or "0"
-                code.append("ViewGroup.LayoutParams "+params+"=new ViewGroup.LayoutParams("+width+", "+height+");")
-                code.append(var+".setLayoutParams("+params+");")
                 
         if margin_left or margin_right or margin_top or margin_bottom:
             left="0"
@@ -228,7 +252,7 @@ class View:
                 right="(int)("+margin_right+"*getResources().getDisplayMetrics().density)"
             if margin_bottom:
                 bottom="(int)("+margin_bottom+"*getResources().getDisplayMetrics().density)"
-            code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).setMargins("+left+","+top+","+right+","+bottom+");")
+            code.append(params + ".setMargins("+left+","+top+","+right+","+bottom+");")
 
         self.id=var
         self.code=code

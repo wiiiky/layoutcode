@@ -145,15 +145,16 @@ class View:
             elif key=="orientation":
                 orientation=self.convert_orientation(value)
                 code.append(var + ".setOrientation(" + orientation +");")
-            elif key=="src":  #ImageView
+            elif key=="src":  
                 src=self.convert_src(value)
                 code.append(var + ".setImageDrawable(" + src + ");")
             elif key=="background":
                 bg=self.convert_background(value)
                 code.append(var + ".setBackgroundResource(" + bg + ");")
-            elif key=="style":
-                style=self.convert_style(value)
-                code.append(self.get_style_code(self_type,var,style))
+            elif key=="style":  # not supported
+                pass
+                #style=self.convert_style(value)
+                #code.append(self.get_style_code(self_type,var,style))
             elif key=="completionthreshold":
                 code.append(var + ".setThreshold(" + value + ");")
             elif key=="inputtype":
@@ -172,17 +173,33 @@ class View:
                 print("unkonwn : " +key + "|" + value)
 
         if paddingLeft or paddingRight or paddingTop or paddingBottom:
-            left=paddingLeft or "0"
-            right=paddingRight or "0"
-            top=paddingTop or "0"
-            bottom=paddingBottom or "0"
-            code.append(var + ".setPadding((int)" + left +",(int)" + top + ",(int)" + right + ",(int)" + bottom + ");")
+            left="0"
+            right="0"
+            top="0"
+            bottom="0"
+            if paddingLeft:
+                left="(int)("+paddingLeft+"*getResources().getDisplayMetrics().density)"
+            if paddingRight:
+                right="(int)("+paddingRight+"*getResources().getDisplayMetrics().density)"
+            if paddingTop:
+                top="(int)("+paddingTop+"*getResources().getDisplayMetrics().density)"
+            if paddingBottom:
+                bottom="(int)("+paddingBottom+"*getResources().getDisplayMetrics().density)"
+            code.append(var + ".setPadding("+left+","+top+","+right+","+bottom+");")
         elif paddingStart or paddingEnd or paddingTop or paddingBottom:
-            start=paddingStart or "0"
-            end=paddingEnd or "0"
-            top=paddingTop or "0"
-            bottom=paddingBottom or "0"
-            code.append(var + ".setPaddingRelative((int)" + start + ",(int)" + top + ",(int)" + end + ",(int)" + bottom + ");")
+            start="0"
+            end="0"
+            top="0"
+            bottom="0"
+            if paddingStart:
+                start="(int)("+paddingStart+"*getResources().getDisplayMetrics().density)"
+            if paddingEnd:
+                end="(int)("+paddingEnd+"*getResources().getDisplayMetrics().density)"
+            if paddingTop:
+                top="(int)("+paddingTop+"*getResources().getDisplayMetrics().density)"
+            if paddingBottom:
+                bottom="(int)("+paddingBottom+"*getResources().getDisplayMetrics().density)"
+            code.append(var + ".setPaddingRelative("+start+","+top+","+end+","+bottom+");")
 
         if layout_width or layout_height or layout_weight:
             if parent_id:
@@ -199,11 +216,19 @@ class View:
                 code.append(var+".setLayoutParams("+params+");")
                 
         if margin_left or margin_right or margin_top or margin_bottom:
-            margin_left=margin_left or "0"
-            margin_top=margin_top or "0"
-            margin_right=margin_right or "0"
-            margin_bottom=margin_bottom or "0"
-            code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).setMargins("+margin_left+","+margin_top+","+margin_right+","+margin_bottom+");")
+            left="0"
+            top="0"
+            right="0"
+            bottom="0"
+            if margin_left:
+                left="(int)("+margin_left+"*getResources().getDisplayMetrics().density)"
+            if margin_top:
+                top="(int)("+margin_top+"*getResources().getDisplayMetrics().density)"
+            if margin_right:
+                right="(int)("+margin_right+"*getResources().getDisplayMetrics().density)"
+            if margin_bottom:
+                bottom="(int)("+margin_bottom+"*getResources().getDisplayMetrics().density)"
+            code.append("((" + parent_type + ".LayoutParams)" + var + ".getLayoutParams()).setMargins("+left+","+top+","+right+","+bottom+");")
 
         self.id=var
         self.code=code
@@ -359,9 +384,18 @@ class Generator:
         #后期处理
         i=all.find("getResources()")
         if i>=0:    # 如果用到getResources()那么，将其提取出来，避免重复调用
-            res="res"
-            all=all.replace("getResources()",res)
-            all="Resources " +res + " = getResources();\n\n" + all
+            var="res"
+            all=all.replace("getResources()",var)
+            new="Resources " +var + " = getResources();\n"
+
+            j=all.find("res.getDisplayMetrics().density")
+            if j>=0:
+                var="density"
+                all=all.replace("res.getDisplayMetrics().density",var)
+                density="float " +var +" = res.getDisplayMetrics().density;\n"
+                new = new + density
+            new = new + "\n"
+            all=new + all
 
         try:    # 写入文件
             file=open(data.output,"w")

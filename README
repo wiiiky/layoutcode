@@ -19,6 +19,8 @@ xmlcode input [ouput]
 ##XXX
 目前还不是很完善，很多属性还不支持。我会逐步添加。
 
+        style 属性不支持代码设置，根据我的理解，它应该只是一个“宏定义”
+
 ##Node & Contact Info
 Wiky L(wiiiky@yeah.net)
 

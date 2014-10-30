@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# xmlcode.py
+# layoutcode.py
 #
 # Copyright (C) 2014 - Wiky L
 #

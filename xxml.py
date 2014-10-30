@@ -101,7 +101,7 @@ class View:
                 code.append("ViewGroup.LayoutParams "+params+"=new ViewGroup.LayoutParams("+width+", "+height+");")
                 code.append(var+".setLayoutParams("+params+");")
         else:
-            print("layout_weight and layout_height are neither specified")
+            #print("layout_weight and layout_height are neither specified")
             params=var + "Params"
             code.append(parent_type + ".LayoutParams " + params + " = (" + parent_type + ".LayoutParams)" + var + ".getLayoutParams();")
 

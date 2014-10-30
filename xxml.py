@@ -164,10 +164,21 @@ class View:
                     code.append(params + ".addRule(" + parent_type + ".ALIGN_PARENT_RIGHT);")
                 else:
                     code.append(params + ".removeRule(" + parent_type + ".ALIGN_PARENT_RIGHT);")
+            elif key=="layout_centerinparent":
+                if value=="true":
+                    code.append(params + ".addRule(" + parent_type + ".CENTER_IN_PARENT);")
+                else:
+                    code.append(params + ".removeRule(" + parent_type + ".CENTER_IN_PARENT);")
+            elif key=="layout_gravity":
+                gravity=self.convert_layout_gravity(value)
+                code.append(params + ".gravity = " + gravity + ";");
             elif key=="text":    #TextView Button
                 if len(value)>0:
                     text=self.convert_text(value)
                     code.append(var + ".setText(" + text + ");")
+            elif key=="textsize":
+                size=self.convert_textsize(value)
+                code.append(var + ".setTextSize(" + size + ");")
             elif key=="textcolor":
                 color=self.convert_color(value)
                 code.append(var + ".setTextColor(" + color +");")
@@ -302,6 +313,16 @@ class View:
         print("unknown value :",v)
         return "unknown"
 
+    def convert_layout_gravity(self,v):
+        if v=="center_horizontal":
+            return "Gravity.CENTER_HORIZONTAL"
+        elif v=="center_vertical":
+            return "Gravity.CENTER_VERTICAL"
+        elif v=="center":
+            return "Gravity.CENTER"
+        print("unknown value : ",v)
+        return "unknown"
+
     def convert_style(self,v):
         i=v.find("style/")
         if i>=0:
@@ -314,6 +335,12 @@ class View:
         if i>=0:
             return "getResources().getString(R.string."+ v[i+7:]  +")"
         return "\"" + v + "\""
+
+    def convert_textsize(self,v):
+        i=v.find("sp")
+        if i>=0:
+            return v[:i]
+        return v
 
     def convert_color(self,v):
         i=v.find("color/")
@@ -329,6 +356,8 @@ class View:
             return "InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD"
         elif v=="textEmailAddress":
             return "InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS"
+        elif v=="text":
+            return "InputType.TYPE_CLASS_TEXT"
         print("unknown value :",v)
         return "unknown"
 

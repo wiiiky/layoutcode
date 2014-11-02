@@ -196,8 +196,12 @@ class View:
                 src=self.convert_src(value)
                 code.append(var + ".setImageDrawable(" + src + ");")
             elif key=="background":
-                bg=self.convert_background(value)
-                code.append(var + ".setBackgroundResource(" + bg + ");")
+                if not value.startswith("#"):
+                    bg=self.convert_background(value)
+                    code.append(var + ".setBackgroundResource(" + bg + ");")
+                else:
+                    bg=self.convert_color(value)
+                    code.append(var + ".setBackgroundColor(" + bg + ");")
             elif key=="style":  # not supported
                 pass
                 #style=self.convert_style(value)
@@ -346,6 +350,9 @@ class View:
         i=v.find("color/")
         if i>=0:
             return "getResources().getColor(R.color."+ v[i+6:] + ")"
+        i=v.find("#")
+        if i>=0:
+            return "Color.parseColor(\"" + v[i:] + "\")"
         print("unknown value :",v)
         return "unknown"
 

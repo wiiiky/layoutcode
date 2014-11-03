@@ -151,6 +151,9 @@ class View:
             elif key=="layout_below":
                 belowid=self.convert_id(value)
                 code.append(params + ".addRule(" + parent_type + ".BELOW,"+belowid+");")
+            elif key=="layout_torightof":
+                right=self.convert_id(value)
+                code.append(params  + ".addRule(" + parent_type + ".RIGHT_OF," + right + ");")
             elif key=="gravity":
                 gravity=self.convert_gravity(value)
                 code.append(var + ".setGravity(" + gravity + ");" )
@@ -159,6 +162,11 @@ class View:
                     code.append(params + ".addRule(" + parent_type + ".ALIGN_PARENT_LEFT);")
                 else:
                     code.append(params + ".removeRule(" + parent_type + ".ALIGN_PARENT_LEFT);")
+            elif key=="layout_centervertical":
+                if value=="true":
+                    code.append(params + ".gravity|=CENTER_VERTICAL;")
+                else:
+                    code.append(params + ".gravity!=~CENTER_VERTICAL;")
             elif key=="layout_alignparentright":
                 if value=="true":
                     code.append(params + ".addRule(" + parent_type + ".ALIGN_PARENT_RIGHT);")
@@ -220,8 +228,13 @@ class View:
             elif key=="typeface":
                 face=self.convert_typeface(value)
                 code.append(var + ".setTypeface(" + face + ");")
+            elif key=="ellipsize":
+                ellipsize=self.convert_ellipise(value)
+                code.append(var + ".setEllipsize(" + ellipsize + ");")
             elif key=="ems":
                 code.append(var + ".setEms(" + value + ");")
+            elif key=="lines":
+                code.append(var + ".setLines(" + value + ");")
             elif not list_contains(ignored,key):
                 print("unkonwn : " +key + "|" + value)
 
@@ -300,6 +313,12 @@ class View:
             return "Gravity.CENTER_VERTICAL"
         return "Gravity.CENTER"
 
+    def convert_ellipise(self,v):
+        if v=="end":
+            return "TextUtils.TruncateAt.END"
+        print("unkown ellipise",v)
+        return "unknown"
+
     def convert_src(self,v):
         i=v.find("drawable/")
         if i>=0:
@@ -324,6 +343,8 @@ class View:
             return "Gravity.CENTER_VERTICAL"
         elif v=="center":
             return "Gravity.CENTER"
+        elif v=="top":
+            return "Gravity.TOP"
         print("unknown value : ",v)
         return "unknown"
 
@@ -344,6 +365,9 @@ class View:
         i=v.find("sp")
         if i>=0:
             return v[:i]
+        i=v.find("px")
+        if i>=0:
+            return "TypedValue.COMPLEX_UNIT_PX," + v[:i]
         return v
 
     def convert_color(self,v):
@@ -380,7 +404,10 @@ class View:
 
     def convert_dp(self,v):
         if v.endswith("dp"):
-            return str(int(v[:-2]))
+            return str(int(v[:-2])) + "*getResources().getDisplayMetrics().density"
+        i=v.find("px")
+        if i>=0:
+            return v[:i]
         i=v.find("dimen/")
         if i>=0:
             return "getResources().getDimension(R.dimen."+ v[i+6:] +")"

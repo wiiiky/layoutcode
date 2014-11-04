@@ -193,6 +193,8 @@ class View:
             elif key=="textcolorhint":
                 color=self.convert_color(value)
                 code.append(var + ".setHintTextColor(" + color + ");")
+            elif key=="enabled":
+                code.append(var + ".setEnabled(" + value  + ");")
             elif key=="hint":
                 hint=self.convert_text(value)
                 code.append(var + ".setHint(" + hint + ");")

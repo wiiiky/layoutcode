@@ -190,6 +190,12 @@ class View:
             elif key=="textcolor":
                 color=self.convert_color(value)
                 code.append(var + ".setTextColor(" + color +");")
+            elif key=="textcolorhint":
+                color=self.convert_color(value)
+                code.append(var + ".setHintTextColor(" + color + ");")
+            elif key=="hint":
+                hint=self.convert_text(value)
+                code.append(var + ".setHint(" + hint + ");")
             elif key=="textcolorlink":
                 color=self.convert_color(value)
                 code.append(var + ".setLinkTextColor(" + color + ");")

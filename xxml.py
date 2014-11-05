@@ -66,7 +66,10 @@ class View:
                 layout_weight=value
 
         if id is None:
-            var=get_tmp_name()
+            if parent is not None:
+                var=get_tmp_name()
+            else:
+                var="root"
         else:
             var=id
 

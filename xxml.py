@@ -78,9 +78,6 @@ class View:
         code=[]
         code.append(self_type + " "+ var + " = new " + self_type + "(this);")
 
-        if id:
-            code.append(var + ".setId(R.id." + id + ");")
-
         if parent_id:
             code.append(parent_id + ".addView(" + var +");")
 

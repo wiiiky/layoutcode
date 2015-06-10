@@ -1,15 +1,34 @@
 # encoding=utf8
 
 
-from bs4 import BeautifulSoup, element
+from bs4 import element
+from exception import *
 
 
-class UnexpectedObjectException(Exception):
-    def __init__(self, t):
-        Exception.__init__(self, 'object must be an instance of %s' % str(t))
+class ViewInterface (object):
+
+    def __init__(self):
+        self.__id__ = None
+
+    def __str__(self):
+        return ''
+
+    def __getid__(self):
+        return 0
+
+    def id(self):
+        if self.__id__ is None:
+            self.__id__ = self.__getid__()
+        return self.__id__
+
+    def attrs_layout(self):
+        return ''
+
+    def get_layout_params(self, attr):
+        return ''
 
 
-class View(object):
+class View (ViewInterface):
 
     nid = 0
 
@@ -19,26 +38,23 @@ class View(object):
         @parent 一个ViewGroup对象
         @context Context的对象，可以为None
         """
+        ViewInterface.__init__(self)
         if type(tag) != element.Tag:
-            raise UnexpectedObjectException(element.Tag)
+            raise UnexpectedTypeException(element.Tag)
+        elif tag.name != 'View':
+            raise UnexpectedTagException('View', tag.name)
         elif type(context) != str:
-            raise UnexpectedObjectException(str)
+            raise UnexpectedTypeException(str)
         self.tag = tag
         self.parent = parent
         self.context = context
-        self.__id__ = None
 
     def __getid__(self):
         View.nid += 1
         return View.nid
 
-    def id(self):
-        if self.__id__ is None:
-            self.__id__ = self.__getid__()
-        return self.__id__
-
     def name(self):
-        return 'v%s' % self.id()
+        return 'view%s' % self.id()
 
     def __str__(self):
         s = 'View %s = View(%s);\n' % (self.name(), self.context)

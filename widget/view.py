@@ -2,7 +2,6 @@
 
 
 from bs4 import element
-from exception import *
 
 
 class ViewInterface (object):

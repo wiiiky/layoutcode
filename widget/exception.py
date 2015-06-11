@@ -11,3 +11,9 @@ class UnexpectedTagException (Exception):
     def __init__(self, name, _name):
         msg = 'unexpected tag name %s, must be %s' % (_name, name)
         Exception.__init__(self, msg)
+
+
+class UnknownTagException(Exception):
+    def __init__(self, tag):
+        msg = '%s is unknown' % str(tag.name)
+        Exception.__init__(self, msg)

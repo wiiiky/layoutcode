@@ -1,18 +1,19 @@
 # encoding=utf8
 
-from . import view, viewgroup, exception
-
 
 def choice_view(tag):
-    if tag.name == 'View':
-        return view.View
-    elif tag.name == 'ViewGroup':
-        return viewgroup.ViewGroup
+    from .view import View
+    from .linearlayout import LinearLayout
+    views = [View, LinearLayout]
+    for cls in views:
+        if tag.name == cls.class_name():
+            return cls
     return None
 
 
-def create_view(tag):
+def create_view(tag, parent=None, context='null'):
+    from .exception import UnknownTagException
     cls = choice_view(tag)
     if not cls:
-        raise exception.UnknownTagException(tag)
-    return cls(tag)
+        raise UnknownTagException(tag)
+    return cls(tag, parent, context)
